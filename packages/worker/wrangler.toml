@@ -1,0 +1,41 @@
+name = "tectonik"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+# Garde aussi tectonik.<compte>.workers.dev.
+workers_dev = true
+
+# Domaines : le site (assets statiques du front) et l'API sont servis par ce Worker.
+# La zone tectonik.app doit être sur le même compte Cloudflare ; l'enregistrement DNS
+# est créé au déploiement.
+routes = [
+  { pattern = "tectonik.app", custom_domain = true },
+  { pattern = "www.tectonik.app", custom_domain = true },
+]
+
+# Front React construit par `npm run build:web` (VITE_API_URL vide : même origine).
+[assets]
+directory = "../web/dist"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]
+
+[observability]
+enabled = true
+
+[vars]
+# Origine autorisée pour les appels API (CORS).
+ALLOWED_ORIGIN = "*"
+
+# Création de profils anonymes : 10 par minute et par adresse IP.
+# (identifiant propre à ce Worker : Sudoku Race utilise 1701)
+[[ratelimits]]
+name = "CREATE_LIMITER"
+namespace_id = "1702"
+simple = { limit = 10, period = 60 }
+
+# Base D1 « tectonik » (Europe de l'Ouest), schéma 0001 déjà appliqué.
+[[d1_databases]]
+binding = "DB"
+database_name = "tectonik"
+database_id = "f0029341-c068-4d92-967a-7d473f6065c2"
+migrations_dir = "migrations"

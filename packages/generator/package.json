@@ -1,0 +1,12 @@
+{
+  "name": "@tectonik/generator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "gen": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@tectonik/shared": "*"
+  }
+}

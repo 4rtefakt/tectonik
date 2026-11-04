@@ -1,0 +1,206 @@
+/**
+ * Test de bout en bout du front avec Chromium (playwright-core) :
+ *   node scripts/ui-test.mjs [http://127.0.0.1:5173]
+ * Worker local avec base remplie (`npm run db:local`) : les solutions sont lues
+ * dans packages/worker/seed/puzzles.sql pour remplir les grilles. Le joueur
+ * Alice ne doit pas avoir déjà fini la grille du jour (base locale neuve).
+ * Alice (bureau, clair, français) défie Bob (mobile, sombre, anglais), puis
+ * Bob récupère son profil sur un troisième appareil. Captures dans $SHOTS.
+ */
+import { chromium } from "playwright-core";
+import { mkdirSync, readFileSync, statSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+const shots = process.env.SHOTS ?? "./shots";
+mkdirSync(shots, { recursive: true });
+const base = process.argv[2] ?? "http://127.0.0.1:5173";
+let exe = process.env.PW_EXE ?? "/opt/pw-browsers/chromium";
+try { if (statSync(exe).isDirectory()) exe = undefined; } catch { exe = undefined; }
+const browser = await chromium.launch(exe ? { executablePath: exe } : {});
+const fail = (m) => { console.error("FAIL:", m); process.exit(1); };
+const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
+
+const seed = readFileSync(fileURLToPath(new URL("../../worker/seed/puzzles.sql", import.meta.url)), "utf8");
+const puzzles = new Map(
+  [...seed.matchAll(/\('(\d{4}-\d{2}-\d{2})',(\d+),(\d+),'(\w+)','(\d+)','(\d+)'/g)].map((m) => [m[1], { width: Number(m[2]), height: Number(m[3]), regions: m[4], grid: m[5], solution: m[6] }]),
+);
+const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+const { width, regions, grid, solution } = puzzles.get(today) ?? fail(`pas de grille pour ${today}`);
+const empties = [...grid].flatMap((ch, i) => (ch === "0" ? [i] : []));
+const size = (i) => [...regions].filter((ch) => ch === regions[i]).length;
+const touches = (i, j) => i !== j && Math.abs(Math.floor(i / width) - Math.floor(j / width)) <= 1 && Math.abs((i % width) - (j % width)) <= 1;
+const peer = (i, j) => i !== j && (regions[i] === regions[j] || touches(i, j));
+
+function watch(page, who) {
+  page.on("pageerror", (e) => console.log(`pageerror ${who}:`, e.message));
+  page.on("console", (m) => m.type() === "error" && !m.text().includes("ERR_CERT") && !m.text().includes("fonts.g") && console.log(`console ${who}:`, m.text()));
+}
+const cell = (page, i) => page.locator(".tecto .t-cell").nth(i);
+async function type(page, i, d) {
+  await cell(page, i).click();
+  await page.keyboard.press(String(d));
+}
+
+try {
+  // 1. Alice ouvre le site : profil anonyme créé, grille cachée jusqu'au départ
+  const ctxA = await browser.newContext({ viewport: { width: 1180, height: 900 }, locale: "fr-FR" });
+  const alice = await ctxA.newPage();
+  watch(alice, "A");
+  await alice.goto(base);
+  await alice.waitForSelector(".intro-card", { timeout: 15000 });
+  if ((await alice.locator(".tecto.hidden .t-digit").count()) !== 0) fail("la grille ne doit pas être visible avant le départ");
+  await alice.screenshot({ path: `${shots}/a-intro.png` });
+  await alice.click(".intro-card button");
+  await alice.waitForSelector(".keypad");
+  const givens = await alice.locator(".t-cell.given").count();
+  if (givens !== grid.length - empties.length) fail(`indices affichés : ${givens}`);
+  log("Alice : grille découverte,", givens, "indices");
+
+  // notes, annulation
+  const [e0] = empties;
+  await cell(alice, e0).click();
+  await alice.keyboard.press("n");
+  await alice.keyboard.press("1");
+  await alice.keyboard.press("2");
+  if ((await cell(alice, e0).locator(".t-notes span").allTextContents()).join("") !== "12") fail("notes");
+  await alice.keyboard.press("n");
+  await alice.keyboard.press("Control+z");
+  if ((await cell(alice, e0).locator(".t-notes span").allTextContents()).join("") !== "1") fail("annuler une note");
+
+  // une zone de n cases n'accepte pas plus que n
+  const small = empties.find((i) => size(i) < 5);
+  if (small !== undefined) {
+    await cell(alice, small).click();
+    if (!(await alice.locator(".keypad .key >> nth=4").isDisabled())) fail("le 5 doit être grisé pour une petite zone");
+    await alice.keyboard.press("5");
+    if ((await cell(alice, small).locator(".t-digit").count()) !== 0) fail("5 refusé dans une petite zone");
+  }
+
+  // vérification automatique : deux cases vides de la même zone ; un conflit compte 10 s, un chiffre faux 30 s
+  const [a, b] = (() => {
+    for (const i of empties) for (const j of empties) if (i !== j && regions[i] === regions[j]) return [i, j];
+    fail("pas deux cases vides dans une même zone");
+  })();
+  await alice.click(".tools .tool:has-text('Vérif. auto')");
+  await type(alice, a, solution[a]);
+  await type(alice, b, solution[a]);
+  await alice.waitForSelector(".t-cell.conflict");
+  if (!(await alice.locator(".penalty").textContent()).includes("+10 s")) fail("pénalité d'un conflit");
+  await alice.keyboard.press("Backspace");
+  const filled = (j) => (grid[j] !== "0" ? Number(grid[j]) : j === a ? Number(solution[a]) : 0);
+  const wrong = [1, 2, 3, 4, 5].find((d) => d <= size(b) && d !== Number(solution[b]) && ![...grid].some((_, j) => peer(b, j) && filled(j) === d));
+  let penalty = 10;
+  if (wrong) {
+    await type(alice, b, wrong);
+    await alice.waitForFunction(() => document.querySelector(".penalty")?.textContent?.includes("+40 s"));
+    if (!(await cell(alice, b).getAttribute("class")).includes("conflict")) fail("chiffre faux signalé");
+    await alice.keyboard.press("Backspace");
+    penalty = 40;
+  }
+  const last = wrong ?? Number(solution[a]);
+
+  // annuler, rétablir, et l'historique survit au rechargement
+  await alice.keyboard.press("Control+z");
+  if ((await cell(alice, b).textContent()) !== String(last)) fail("annuler l'effacement");
+  await alice.click(".tools .tool:has-text('Rétablir')");
+  if ((await cell(alice, b).locator(".t-digit").count()) !== 0) fail("rétablir l'effacement");
+  await alice.reload();
+  await alice.waitForSelector(".keypad");
+  await alice.keyboard.press("Control+z");
+  if ((await cell(alice, b).textContent()) !== String(last)) fail("annuler après rechargement");
+  await alice.keyboard.press("Control+y");
+  if ((await cell(alice, b).locator(".t-digit").count()) !== 0) fail("rétablir après rechargement");
+  if (!(await alice.locator(".penalty").textContent()).includes(`+${penalty} s`)) fail("pas de pénalité en plus en annulant ou rétablissant");
+  await alice.click(".tools .tool:has-text('Vérif. auto')");
+  log(`Alice : notes, petite zone, annuler/rétablir (après rechargement) et vérification OK (+${penalty} s)`);
+
+  // remplissage ; la dernière case au pavé
+  for (const i of empties.slice(0, -1)) await type(alice, i, solution[i]);
+  await cell(alice, empties[0]).click();
+  await alice.screenshot({ path: `${shots}/a-playing.png` });
+  const end = empties.at(-1);
+  await cell(alice, end).click();
+  await alice.click(`.keypad .key >> nth=${Number(solution[end]) - 1}`);
+  await alice.waitForSelector(".result", { timeout: 10000 });
+  const timeA = (await alice.locator(".result-time").textContent()).trim();
+  if (!(await alice.locator(".result").textContent()).includes(`${penalty} s de pénalité`)) fail("pénalité dans le résultat");
+  await alice.waitForSelector(".ranking li.me");
+  await alice.screenshot({ path: `${shots}/a-solved.png`, fullPage: true });
+  log("Alice : grille finie en", timeA);
+
+  await alice.click("a[href='/friends']");
+  await alice.waitForSelector(".friend-code");
+  const codeA = (await alice.locator(".friend-code").first().textContent()).trim();
+
+  // 2. Bob ouvre le lien de duel d'Alice sur mobile, en sombre et en anglais
+  const ctxB = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2, locale: "en-US", colorScheme: "dark" });
+  const bob = await ctxB.newPage();
+  watch(bob, "B");
+  await bob.goto(`${base}/${today}/vs/${codeA}`);
+  await bob.waitForSelector(".duel .duel-times", { timeout: 15000 });
+  await bob.waitForFunction((t) => document.querySelector(".duel-times")?.textContent?.includes(t), timeA);
+  if (!(await bob.locator(".duel").textContent()).includes("is now in your friends")) fail("ajout par le lien de duel");
+  await bob.screenshot({ path: `${shots}/b-duel.png` });
+  await bob.click(".intro-card button");
+  await bob.waitForSelector(".keypad");
+  for (const i of empties) {
+    await cell(bob, i).tap();
+    await bob.click(`.keypad .key >> nth=${Number(solution[i]) - 1}`);
+  }
+  await bob.waitForSelector(".result", { timeout: 10000 });
+  await bob.waitForSelector(".duel-verdict");
+  const verdict = await bob.locator(".duel-verdict").textContent();
+  await bob.waitForFunction(() => document.querySelectorAll(".ranking li").length === 2);
+  await bob.screenshot({ path: `${shots}/b-solved.png`, fullPage: true });
+  log("Bob : fini au pavé tactile ·", verdict);
+
+  await bob.goto(`${base}/friends`);
+  await bob.waitForSelector(".friend-code");
+  const codeB = (await bob.locator(".friend-code").first().textContent()).trim();
+  if (!(await bob.locator(".friend-list").textContent()).includes("hasn't added you yet")) fail("amitié à sens unique");
+
+  // 3. Alice ne voit Bob qu'après l'avoir ajouté (lien d'invitation)
+  await alice.goto(base);
+  await alice.waitForSelector(".ranking li");
+  if ((await alice.locator(".ranking li").count()) !== 1) fail("Alice ne devrait voir qu'elle-même");
+  await alice.goto(`${base}/add/${codeB.toLowerCase()}`);
+  await alice.waitForSelector(".big-line");
+  await alice.click("a.button.primary");
+  await alice.waitForFunction(() => document.querySelectorAll(".ranking li").length === 2);
+  await alice.waitForSelector(".season table");
+  await alice.screenshot({ path: `${shots}/a-board.png`, fullPage: true });
+  log("Alice : ajoute Bob, classement à deux et saison");
+
+  // jour passé depuis le bandeau
+  await alice.click(".archive li:first-child a");
+  await alice.waitForSelector(".intro-card");
+  if (!(await alice.locator(".day-head").textContent()).includes("jour passé")) fail("mention du jour passé");
+
+  // 4. Bob renomme son profil et affiche son code de transfert
+  await bob.goto(`${base}/settings`);
+  await bob.fill("#pseudo", "Bob");
+  await bob.click("form:has(#pseudo) button[type=submit]");
+  await bob.waitForSelector("#pseudo-hint.ok");
+  await bob.click("button:has-text('Show my transfer code')");
+  await bob.waitForSelector("svg.qr");
+  const secret = (await bob.locator("code.secret").textContent()).trim();
+  await bob.screenshot({ path: `${shots}/b-settings.png`, fullPage: true });
+
+  // 5. Troisième appareil vierge : le lien du QR code reprend le profil de Bob
+  const ctxC = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: "fr-FR" });
+  const carol = await ctxC.newPage();
+  watch(carol, "C");
+  await carol.goto(`${base}/restore#${secret}`);
+  await carol.waitForSelector(".big-line", { timeout: 15000 });
+  if (!(await carol.locator(".big-line").textContent()).includes("Bob")) fail("profil récupéré");
+  if (carol.url().includes(secret)) fail("le secret doit quitter la barre d'adresse");
+  await carol.click("a.button.primary");
+  await carol.waitForSelector(".result");
+  log("Troisième appareil : profil de Bob repris, résultat du jour retrouvé");
+
+  await alice.goto(base);
+  await alice.waitForFunction(() => [...document.querySelectorAll(".ranking li")].some((li) => li.textContent.includes("Bob")));
+  console.log("OK");
+} finally {
+  await browser.close();
+}
