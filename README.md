@@ -111,6 +111,22 @@ npm run release       # les trois à la suite
 Le front est construit sans `VITE_API_URL` : il appelle `/api` sur sa propre
 origine.
 
+### Depuis Termux (Android)
+
+`workerd` (le moteur de `wrangler dev`) n'existe pas pour Android et son paquet
+plante dès qu'on le charge, ce qui empêche `wrangler` de démarrer. Le
+déploiement n'en a pas besoin : on installe sans scripts et on neutralise ce
+chargement (à refaire après chaque `npm install`).
+
+```sh
+pkg update -y && pkg install -y git gh nodejs-lts   # Node 22 ou plus
+gh auth login && gh repo clone 4rtefakt/tectonik && cd tectonik
+npm install --ignore-scripts
+find node_modules -path '*/workerd/lib/main.js' -exec sed -i 's/^var { binPath } = generateBinPath();/var binPath; try { ({ binPath } = generateBinPath()); } catch { binPath = ""; }/' {} +
+npx wrangler login
+npm run release
+```
+
 Le seed est public, solutions comprises : ce n'est pas pire qu'une appli de
 résolution, et le classement ne réunit que des amis. Pour la même raison, la
 solution est envoyée au client avec la grille, pour que la vérification
