@@ -2,15 +2,16 @@ name = "tectonik"
 main = "src/index.ts"
 compatibility_date = "2025-09-01"
 compatibility_flags = ["nodejs_compat"]
-# Site servi sur tectonik.<compte>.workers.dev tant qu'aucun domaine n'est rattaché.
+# Garde aussi tectonik.<compte>.workers.dev.
 workers_dev = true
 
-# Domaine (à décommenter une fois choisi) : le site et l'API sont servis par ce Worker,
-# Cloudflare crée l'enregistrement DNS au déploiement.
-# routes = [
-#   { pattern = "exemple.app", custom_domain = true },
-#   { pattern = "www.exemple.app", custom_domain = true },
-# ]
+# Domaines : le site (assets statiques du front) et l'API sont servis par ce Worker.
+# La zone tectonik.app doit être sur le même compte Cloudflare ; l'enregistrement DNS
+# est créé au déploiement.
+routes = [
+  { pattern = "tectonik.app", custom_domain = true },
+  { pattern = "www.tectonik.app", custom_domain = true },
+]
 
 # Front React construit par `npm run build:web` (VITE_API_URL vide : même origine).
 [assets]
@@ -32,10 +33,9 @@ name = "CREATE_LIMITER"
 namespace_id = "1702"
 simple = { limit = 10, period = 60 }
 
-# Base créée par `npx wrangler d1 create tectonik` : remplacer database_id par
-# l'identifiant affiché avant le premier déploiement. Le zéro suffit en local.
+# Base D1 « tectonik » (Europe de l'Ouest), schéma 0001 déjà appliqué.
 [[d1_databases]]
 binding = "DB"
 database_name = "tectonik"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "f0029341-c068-4d92-967a-7d473f6065c2"
 migrations_dir = "migrations"

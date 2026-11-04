@@ -16,8 +16,8 @@ hebdomadaire, transfert de profil par QR code), et de
 [Fléchette](https://github.com/4rtefakt/cofl-ch-s) : même monorepo, même Worker
 qui sert le front et l'API, même système visuel.
 
-- **Site** : front React + TypeScript + Vite servi en assets statiques par le
-  Worker (même origine que l'API) ; pas encore de domaine (voir « Déployer »)
+- **Site** : https://tectonik.app — le front React + TypeScript + Vite est servi en
+  assets statiques par le Worker (même origine que l'API)
 - **Données** : D1 (SQLite) : joueurs, amitiés, grilles, départs du chrono, scores
 - **Grilles** : générées hors ligne (solution unique, difficulté notée par les
   techniques nécessaires), seed SQL versionné
@@ -95,20 +95,17 @@ node packages/web/scripts/ui-test.mjs http://127.0.0.1:5173
 
 ## Déployer
 
-Une seule fois :
-
-```sh
-npx wrangler d1 create tectonik       # puis copier database_id dans packages/worker/wrangler.toml
-```
-
-Pour un domaine, décommenter `routes` dans `packages/worker/wrangler.toml` (le
-DNS est créé par Cloudflare au déploiement) ; sans domaine, le site est servi
-sur `tectonik.<compte>.workers.dev`. Ensuite, à chaque mise à jour :
+La base D1 `tectonik` existe déjà (Europe de l'Ouest, schéma `0001` appliqué).
+Le Worker est rattaché aux domaines `tectonik.app` et `www.tectonik.app`
+(`routes` dans `packages/worker/wrangler.toml`, DNS créé par Cloudflare au
+déploiement ; la zone doit être sur le même compte), et reste servi sur
+`tectonik.<compte>.workers.dev`. À chaque mise à jour :
 
 ```sh
 npm run db:migrate    # migrations sur la base D1 distante
 npm run db:seed       # grilles (INSERT OR IGNORE, sans risque à relancer)
 npm run deploy        # build du front puis Worker (assets + API)
+npm run release       # les trois à la suite
 ```
 
 Le front est construit sans `VITE_API_URL` : il appelle `/api` sur sa propre

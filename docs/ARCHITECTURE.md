@@ -1,7 +1,7 @@
 # Tectonik — architecture
 
-Déploiement : Worker `tectonik` (assets statiques du front + API), base D1
-`tectonik` ; pas encore de domaine (voir le README).
+Déploiement : https://tectonik.app (Worker `tectonik` : assets statiques du
+front + API), base D1 `tectonik`.
 
 Copie de l'architecture de Sudoku Race, elle-même alignée sur Mots Croisés et
 Fléchette : monorepo npm, paquet `shared` partagé par le Worker, le front et le

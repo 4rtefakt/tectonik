@@ -14,6 +14,7 @@
     "build:web": "npm run --workspace @tectonik/web build",
     "deploy:worker": "npm run --workspace @tectonik/worker deploy",
     "deploy": "npm run build:web && npm run deploy:worker",
+    "release": "npm run db:migrate && npm run db:seed && npm run deploy",
     "db:local": "npm run --workspace @tectonik/worker db:local",
     "db:migrate": "npm run --workspace @tectonik/worker db:migrate",
     "db:seed": "npm run --workspace @tectonik/worker db:seed"
