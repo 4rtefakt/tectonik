@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { addDays, difficultyForDay, FIRST_DAY, geometry, isComplete, isDigitString, isLayout, keepsGivens, parseDigits } from "@tectonik/shared";
 import { grade } from "../src/grader.js";
-import { attempt, LEVELS, maxSingles, puzzleForDay, SHAPES } from "../src/generate.js";
+import { attempt, LEVELS, MAX_SHAPE_SIDE, maxSingles, puzzleForDay, SHAPES } from "../src/generate.js";
 import { randomLayout } from "../src/layout.js";
 import { mulberry32 } from "../src/rng.js";
 import { countSolutions, randomSolution, solve } from "../src/solver.js";
@@ -98,6 +98,10 @@ describe("découpage", () => {
 });
 
 describe("générateur", () => {
+  it("garde des grilles qui tiennent dans le carré du sudoku (cases au moins aussi grandes)", () => {
+    for (const s of Object.values(SHAPES)) expect(Math.max(s.width, s.height)).toBeLessThanOrEqual(MAX_SHAPE_SIDE);
+  });
+
   it("produit des grilles uniques du niveau demandé", () => {
     const rng = mulberry32(7);
     for (const d of ["easy", "medium", "hard"] as const) {

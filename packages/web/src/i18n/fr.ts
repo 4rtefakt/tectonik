@@ -172,7 +172,7 @@ export const fr = {
   helpRules: "La grille est découpée en zones entourées d'un trait gras. Une zone de deux cases contient les chiffres 1 et 2, une zone de trois cases 1, 2 et 3, et ainsi de suite jusqu'à cinq.",
   helpRules2: "Deux cases qui se touchent, même par un coin, n'ont jamais le même chiffre. Chaque grille n'a qu'une solution, qui se trouve sans deviner.",
   helpScoring: "Ton score, c'est ton temps, du moment où tu découvres la grille jusqu'à la dernière case. La vérification automatique signale les erreurs : 10 s par conflit (chiffre déjà présent dans la zone ou dans une case qui touche), 30 s par chiffre qui n'est pas celui de la solution.",
-  helpWeek: "La grille grandit au fil de la semaine : lundi et mardi faciles (5 × 7), mercredi et jeudi moyens (6 × 8), vendredi et samedi difficiles (7 × 9), dimanche expert (8 × 10). Les grilles passées restent jouables.",
+  helpWeek: "La grille grandit au fil de la semaine : lundi et mardi faciles (7 × 7), mercredi et jeudi moyens (8 × 8), vendredi et samedi difficiles (9 × 9), dimanche expert (9 × 9). Les grilles passées restent jouables.",
   helpKeys: [
     ["1 – 5", "écrit le chiffre (ou la note en mode notes)"],
     ["Maj + chiffre", "ajoute ou retire une note (clavier QWERTY ; en AZERTY, passe par N)"],

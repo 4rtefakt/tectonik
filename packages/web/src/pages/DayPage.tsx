@@ -79,6 +79,7 @@ function PuzzleArea({ day, today, duel, onProgress }: { day: string; today: stri
       const r = await api.start(day);
       setStarted({ puzzle: r.puzzle, startedAt: r.startedAt, offset: r.now - Date.now() });
       onProgress();
+      requestAnimationFrame(showWholeGame);
     } catch {
       setStartError(true);
     } finally {
@@ -192,6 +193,19 @@ function PuzzleArea({ day, today, duel, onProgress }: { day: string; today: stri
       </div>
     </>
   );
+}
+
+/**
+ * Sur un téléphone, l'en-tête pousse le pavé sous le bord de l'écran : au départ,
+ * on fait défiler jusqu'au chrono pour que la grille, les outils et le pavé
+ * soient tous visibles (la partie entière tient dans l'écran).
+ */
+function showWholeGame() {
+  const play = document.getElementById("play");
+  const keypad = play?.querySelector(".keypad");
+  if (!play || !keypad || keypad.getBoundingClientRect().bottom <= window.innerHeight) return;
+  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  play.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
 }
 
 function useShare() {

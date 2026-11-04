@@ -7,15 +7,18 @@ import { countSolutions, randomSolution } from "./solver.js";
 export const LEVELS: Record<Difficulty, Level> = { easy: 1, medium: 2, hard: 3, expert: 4 };
 
 /**
- * Dimensions (largeur × hauteur) selon la difficulté : en hauteur, comme dans
- * les magazines (et sur un téléphone tenu droit), et de plus en plus grandes
- * au fil de la semaine.
+ * Dimensions (largeur × hauteur) selon la difficulté, de plus en plus grandes
+ * au fil de la semaine. Jamais plus de 9 × 9 : la grille tient dans le carré de
+ * celle de Sudoku Race, donc sur un téléphone, et ses cases ne sont jamais plus
+ * petites que celles du sudoku (plus grandes les jours où la grille est plus
+ * petite).
  */
+export const MAX_SHAPE_SIDE = 9;
 export const SHAPES: Record<Difficulty, { width: number; height: number }> = {
-  easy: { width: 5, height: 7 },
-  medium: { width: 6, height: 8 },
-  hard: { width: 7, height: 9 },
-  expert: { width: 8, height: 10 },
+  easy: { width: 7, height: 7 },
+  medium: { width: 8, height: 8 },
+  hard: { width: 9, height: 9 },
+  expert: { width: 9, height: 9 },
 };
 
 /** Une zone d'une seule case est un 1 offert : une pour 40 cases au plus. */

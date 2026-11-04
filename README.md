@@ -47,21 +47,24 @@ npm run typecheck # tsc sur les quatre paquets
 ## Générer des grilles
 
 ```sh
-npm run gen                                   # du 2026-11-02 au 2027-12-31 (≈ 80 s)
+npm run gen                                   # du 2026-11-02 au 2027-12-31 (≈ 3 min)
 npm run gen -- --to 2028-12-31                # prolonger : mêmes grilles pour les jours déjà faits
 npm run gen -- --from 2026-11-02 --to 2027-12-31 --seed tectonik --out chemin.sql
 ```
 
 Une grille par jour ; la difficulté suit le jour de la semaine et la grille
-grandit avec elle, en hauteur comme dans les magazines (et comme un téléphone
-tenu droit) :
+grandit avec elle, sans jamais dépasser 9 × 9 : elle tient dans le même carré
+que celle de Sudoku Race (toute la largeur d'un téléphone, 480 px au plus), avec
+des cases au moins aussi grandes que celles du sudoku (≈ 40 px sur un téléphone
+de 390 px en 9 × 9, 46 px en 8 × 8, 52 px en 7 × 7), nettement plus que les
+36 px de Mots Croisés et Fléchette.
 
 | jours | niveau | taille | techniques nécessaires | indices |
 |---|---|---|---|---|
-| lundi, mardi | **facile** | 5 × 7 | singletons nus et cachés | ≈ 8 |
-| mercredi, jeudi | **moyen** | 6 × 8 | chiffre « pointé » | ≈ 7,5 |
-| vendredi, samedi | **difficile** | 7 × 9 | paires et triplets, nus et cachés | ≈ 8 |
-| dimanche | **expert** | 8 × 10 | une hypothèse menant à une impasse | ≈ 8 |
+| lundi, mardi | **facile** | 7 × 7 | singletons nus et cachés | ≈ 10 |
+| mercredi, jeudi | **moyen** | 8 × 8 | chiffre « pointé » | ≈ 8,5 |
+| vendredi, samedi | **difficile** | 9 × 9 | paires et triplets, nus et cachés | ≈ 9 |
+| dimanche | **expert** | 9 × 9 | une hypothèse menant à une impasse | ≈ 8 |
 
 Le générateur tire un découpage en zones (surtout de 4 et 5 cases, une zone
 d'une case pour 40 cases au plus), une grille complète au hasard pour ce

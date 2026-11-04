@@ -166,7 +166,7 @@ export const en: Strings = {
   helpRules: "The grid is split into zones outlined in bold. A two-cell zone holds the digits 1 and 2, a three-cell zone 1, 2 and 3, and so on up to five.",
   helpRules2: "Two cells that touch, even at a corner, never hold the same digit. Every puzzle has a single solution, reachable without guessing.",
   helpScoring: "Your score is your time, from the moment you reveal the grid to the last cell. Auto-check flags mistakes: 10 s per clash (a digit already in its zone or in a touching cell), 30 s per digit that doesn't match the solution.",
-  helpWeek: "The grid grows through the week: Monday and Tuesday easy (5 × 7), Wednesday and Thursday medium (6 × 8), Friday and Saturday hard (7 × 9), Sunday expert (8 × 10). Past puzzles stay playable.",
+  helpWeek: "The grid grows through the week: Monday and Tuesday easy (7 × 7), Wednesday and Thursday medium (8 × 8), Friday and Saturday hard (9 × 9), Sunday expert (9 × 9). Past puzzles stay playable.",
   helpKeys: [
     ["1 – 5", "enters the digit (or a note in notes mode)"],
     ["Shift + digit", "toggles a note"],

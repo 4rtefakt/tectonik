@@ -205,14 +205,16 @@ footer { margin: 2.5rem auto 1.5rem; text-align: center; padding: 0 1rem; }
 /* Mise en page : grille à gauche, classement à droite sur grand écran */
 .play { display: grid; grid-template-columns: minmax(0, 480px) minmax(260px, 1fr); gap: 1.25rem 2rem; align-items: start; }
 @media (max-width: 880px) { .play { grid-template-columns: minmax(0, 1fr); } }
-.play-main { display: flex; flex-direction: column; gap: 1rem; min-width: 0; max-width: 480px; width: 100%; margin: 0 auto; }
+.play-main { display: flex; flex-direction: column; gap: 1rem; min-width: 0; max-width: 480px; width: 100%; margin: 0 auto; scroll-margin-top: 0.5rem; }
 .side { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
 
-/* Grille : cases en grille CSS, contours des zones en SVG par-dessus (traits nets et centrés) */
+/* Grille : cases en grille CSS, contours des zones en SVG par-dessus (traits nets et centrés).
+   La grille tient dans le même carré que celle de Sudoku Race (largeur de l'écran, 480 px au plus) :
+   au plus 9 × 9 cases, donc des cases jamais plus petites que celles du sudoku, et plus grandes
+   quand la grille est plus petite (64 px au plus). */
 .tecto {
-  --avail: calc(100vw - 2rem);
-  --grid-h: min(64vh, 600px);
-  --cell: min(calc(var(--avail) / var(--w)), calc(480px / var(--w)), calc(var(--grid-h) / var(--h)), 64px);
+  --avail: min(calc(100vw - 2rem), 480px);
+  --cell: min(calc(var(--avail) / max(var(--w), var(--h))), 64px);
   position: relative; width: calc(var(--cell) * var(--w)); margin: 0 auto;
   user-select: none; -webkit-user-select: none; touch-action: manipulation;
 }
@@ -352,7 +354,7 @@ kbd { font-family: inherit; font-size: 0.85rem; background: var(--bg); border: 1
   .page { padding: 0 0.75rem; }
   .archive { margin: 0 -0.75rem 0.5rem; }
   .archive ol { padding: 0.25rem 0.75rem 0.5rem; }
-  .tecto { --avail: calc(100vw - 1.5rem); --grid-h: max(50svh, 300px); }
+  .tecto { --avail: min(calc(100vw - 1.5rem), 480px); }
   .icon-btn { padding: 0.5rem; min-width: 40px; justify-content: center; }
   .card { padding: 1rem; }
   .key { min-height: 54px; }

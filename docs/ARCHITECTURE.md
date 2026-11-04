@@ -132,8 +132,9 @@ Erreurs : `{ "error": "unauthorized" | "bad_day" | "not_yet" | "not_found" | "no
 - Grille : cases en grille CSS, contours des zones tracés en SVG par-dessus
   (traits nets et centrés quelle que soit la forme), zones teintées en quatre
   couleurs pastel (deux zones qui partagent un côté n'ont jamais la même),
-  désactivable dans les réglages. Taille des cases calculée pour que la grille
-  tienne en largeur et en hauteur (8 × 10 sur un téléphone).
+  désactivable dans les réglages. La grille (9 × 9 au plus) occupe le même carré
+  que celle de Sudoku Race : case = côté du carré ÷ max(largeur, hauteur),
+  64 px au plus, donc jamais plus petite qu'une case du sudoku.
   La partie en cours est gardée en `localStorage` par jour, historique
   d'annulation et de rétablissement compris (300 états au plus, effacé une fois
   la grille finie) : on peut annuler en reprenant la grille le lendemain.
